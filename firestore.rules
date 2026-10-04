@@ -1,13 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn(){ return request.auth != null; }
-    function me(){ return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function admin(){ return signedIn() && me().admin == true; }
+    function signedIn() { return request.auth != null; }
+    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function admin() { return signedIn() && myProfile().admin == true; }
 
     match /users/{uid} {
-      allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn();
       allow update: if signedIn() && (request.auth.uid == uid || admin());
       allow delete: if admin();
     }
@@ -19,13 +19,20 @@ service cloud.firestore {
     }
 
     match /rooms/{id} {
-      allow read, create: if signedIn();
+      allow create: if signedIn() &&
+        (request.resource.data.white == request.auth.uid || request.resource.data.black == request.auth.uid);
+      allow read: if signedIn() &&
+        (resource.data.white == request.auth.uid || resource.data.black == request.auth.uid);
       allow update: if signedIn() &&
+        (resource.data.white == request.auth.uid || resource.data.black == request.auth.uid);
+      allow delete: if signedIn() &&
         (resource.data.white == request.auth.uid || resource.data.black == request.auth.uid);
     }
 
     match /queues/{uid} {
       allow read, create, update, delete: if signedIn() && uid == request.auth.uid;
+      // Public matchmaking needs a server-side queue in production.
+      // This client prototype intentionally keeps the queue limited.
     }
 
     match /games/{id} {

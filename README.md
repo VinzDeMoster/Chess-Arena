@@ -32,8 +32,23 @@ Admin panel client-side tetap harus dilindungi Firestore Rules. Untuk produksi, 
 ## Fair-play
 Fitur Training/Mod pada proyek ini dibatasi untuk private/computer/training games. Tidak ada fitur untuk mengganggu lawan, membuat koneksi lawan lag, atau menghindari sistem deteksi pada pertandingan publik.
 
-## Jika Login macet
-- Pastikan Authentication > Sign-in method > Email/Password aktif.
-- Pastikan Firestore sudah dibuat.
-- Jalankan dari HTTPS/localhost/GitHub Pages, bukan file://.
-- Buka Console browser jika masih gagal. Versi fixed menampilkan pesan error Firebase di layar.
+
+## FIXED build
+Versi ini memperbaiki:
+- Firebase init error tidak lagi membuat halaman terlihat "diam".
+- Login/signup menampilkan error yang jelas.
+- Akun Firebase yang sudah ada tetapi dokumen `users/<UID>` hilang akan dibuat ulang otomatis.
+- chess.js tidak lagi dimuat saat halaman login, sehingga kegagalan library catur tidak memblokir Login.
+- Firestore listener diberi error handler.
+- History tidak bergantung pada composite index `orderBy`.
+- Queue matchmaking tidak dibuat ulang saat Cancel.
+- Room/game punya pengecekan error yang lebih jelas.
+- Admin user management lebih tahan terhadap data kosong.
+
+### Jika masih stuck
+Buka browser console dan cari pesan merah. Pastikan:
+1. Authentication > Sign-in method > Email/Password = Enabled.
+2. Firestore Database sudah dibuat.
+3. `firebase-config.js` cocok dengan Web App Firebase.
+4. `firestore.rules` sudah dipublish.
+5. Website dijalankan lewat HTTPS/web server, bukan `file://`.
