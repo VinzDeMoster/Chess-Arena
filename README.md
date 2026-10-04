@@ -31,3 +31,9 @@ Admin panel client-side tetap harus dilindungi Firestore Rules. Untuk produksi, 
 
 ## Fair-play
 Fitur Training/Mod pada proyek ini dibatasi untuk private/computer/training games. Tidak ada fitur untuk mengganggu lawan, membuat koneksi lawan lag, atau menghindari sistem deteksi pada pertandingan publik.
+
+## Jika Login macet
+- Pastikan Authentication > Sign-in method > Email/Password aktif.
+- Pastikan Firestore sudah dibuat.
+- Jalankan dari HTTPS/localhost/GitHub Pages, bukan file://.
+- Buka Console browser jika masih gagal. Versi fixed menampilkan pesan error Firebase di layar.

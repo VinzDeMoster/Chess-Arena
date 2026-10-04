@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebas
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, getDocs, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
-import { Chess } from "https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -10,10 +9,11 @@ const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
 const pages = ["home","play","friends","history","profile","admin"];
-let user=null, profile=null, game=null, gameRef=null, unsubGame=null, selected=null, legalMoves=[], currentMode=null;
+let user=null, profile=null, game=null, gameRef=null, unsubGame=null, selected=null, legalMoves=[], currentMode=null, Chess=null;
+async function ensureChess(){if(Chess)return Chess;try{const mod=await import("https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm");Chess=mod.Chess;return Chess}catch(e){toast("Library catur gagal dimuat. Cek koneksi internet.");throw e}}
 const pieces={w:{p:"♙",n:"♘",b:"♗",r:"♖",q:"♕",k:"♔"},b:{p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"}};
 
-function toast(s){$("toast").textContent=s;$("toast").className="show";setTimeout(()=>$("toast").className="",2600)}
+function toast(s){const t=$("toast");if(!t)return;t.textContent=String(s);t.className="show";setTimeout(()=>t.className="",3200)}
 function rankName(elo){return elo<1200?"Bronze":elo<1400?"Silver":elo<1600?"Gold":elo<1800?"Platinum":elo<2000?"Diamond":"Master"}
 function showPage(p){pages.forEach(x=>$(x+"Page").classList.toggle("hidden",x!==p))}
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -25,9 +25,9 @@ $("authForm").onsubmit=async e=>{
  try{
   const email=$("authEmail").value.trim(), pw=$("authPassword").value, signup=!$("signupUsername").classList.contains("hidden");
   if(signup){
-   const c=await createUserWithEmailAndPassword(auth,email,pw);
    const username=$("signupUsername").value.trim().toLowerCase();
    if(!/^[a-z0-9_]{3,20}$/.test(username)) throw Error("Username 3-20 karakter: a-z, 0-9, _");
+   const c=await createUserWithEmailAndPassword(auth,email,pw);
    const existing=await getDocs(query(collection(db,"users"),where("username","==",username),limit(1)));
    if(!existing.empty) throw Error("Username sudah digunakan.");
    await setDoc(doc(db,"users",c.user.uid),{uid:c.user.uid,email,username,name:$("signupName").value.trim()||username,elo:1000,rank:"Bronze",wins:0,draws:0,losses:0,friends:[],admin:false,trainingAccess:false,createdAt:serverTimestamp()});
@@ -38,11 +38,16 @@ $("authForm").onsubmit=async e=>{
 $("logoutBtn").onclick=()=>signOut(auth);
 
 onAuthStateChanged(auth,async u=>{
- user=u;
- if(!u){$("authView").classList.remove("hidden");$("dashboardView").classList.add("hidden");return}
- profile=(await getDoc(doc(db,"users",u.uid))).data();
- if(!profile){await signOut(auth);return}
- $("authView").classList.add("hidden");$("dashboardView").classList.remove("hidden");showPage("home");renderProfile();listenAnnouncements();
+ try{
+  user=u;
+  if(!u){$("authView").classList.remove("hidden");$("dashboardView").classList.add("hidden");return}
+  const snap=await getDoc(doc(db,"users",u.uid));
+  if(!snap.exists()){toast("Akun login ditemukan, tetapi data profil Firebase belum ada. Silakan Sign Up ulang atau buat dokumen users/UID.");await signOut(auth);return}
+  profile=snap.data();
+  $("authView").classList.add("hidden");$("dashboardView").classList.remove("hidden");showPage("home");
+  renderProfile().catch(e=>toast("Profil gagal dimuat: "+(e.message||e)));
+  listenAnnouncements();
+ }catch(e){console.error(e);toast("Login berhasil, tetapi profil gagal dimuat: "+(e.message||e));}
 });
 
 async function renderProfile(){
@@ -80,18 +85,20 @@ async function setupMode(mode){
  $("trainingPanel").classList.toggle("hidden",!(profile.trainingAccess&&["computer","training","friend"].includes(mode)));
 }
 function code14(){const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";return Array.from({length:14},()=>a[Math.floor(Math.random()*a.length)]).join("")}
-async function createRoom(){const code=code14();gameRef=doc(db,"rooms",code);game=new Chess();await setDoc(gameRef,{code,mode:"friend",status:"waiting",white:user.uid,black:null,fen:game.fen(),moves:[],createdAt:serverTimestamp()});toast("Room dibuat: "+code);listenGame(gameRef,"white")}
+async function createRoom(){await ensureChess();const code=code14();gameRef=doc(db,"rooms",code);game=new Chess();await setDoc(gameRef,{code,mode:"friend",status:"waiting",white:user.uid,black:null,fen:game.fen(),moves:[],createdAt:serverTimestamp()});toast("Room dibuat: "+code);listenGame(gameRef,"white")}
 async function joinRoom(code){if(!code)return toast("Masukkan room code.");const r=doc(db,"rooms",code);const s=await getDoc(r);if(!s.exists())return toast("Room tidak ditemukan.");if(s.data().black)return toast("Room penuh.");await updateDoc(r,{black:user.uid,status:"playing"});listenGame(r,"black")}
 let queueUnsub=null;
 async function queueMatch(mode){
+ await ensureChess();
  const qref=doc(db,"queues",user.uid);await setDoc(qref,{uid:user.uid,mode,elo:profile.elo,createdAt:serverTimestamp()});
  toast("Mencari lawan...");
  const q=query(collection(db,"queues"),where("mode","==",mode),limit(20));
  queueUnsub=onSnapshot(q,async s=>{const other=s.docs.find(d=>d.id!==user.uid);if(!other)return;try{await runTransaction(db,async tx=>{const me=await tx.get(qref),op=await tx.get(other.ref);if(!me.exists()||!op.exists())throw Error("queue gone");const code=code14();tx.set(doc(db,"rooms",code),{code,mode,status:"playing",white:user.uid,black:other.id,fen:new Chess().fen(),moves:[],createdAt:serverTimestamp()});tx.delete(qref);tx.delete(other.ref)});cancelQueue();toast("Match ditemukan!");}catch(e){}})}
 async function cancelQueue(){if(queueUnsub)queueUnsub();queueUnsub=null;if(user)try{await setDoc(doc(db,"queues",user.uid),{cancelled:true},{merge:true})}catch{}}
-function startLocalGame(mode,diff){gameRef=null;game=new Chess();openGame("white",mode,{local:true,diff})}
+async function startLocalGame(mode,diff){await ensureChess();gameRef=null;game=new Chess();openGame("white",mode,{local:true,diff})}
 function openGame(side,mode,opts={}){$("dashboardView").classList.add("hidden");$("gameView").classList.remove("hidden");$("gameModeLabel").textContent=" · "+mode;$("roomInfo").textContent=opts.local?"Local computer":"Online room";renderBoard();$("trainingPanel").classList.toggle("hidden",!(profile.trainingAccess&&["computer","training","friend"].includes(mode)));if(opts.local&&side==="white"&&game.turn()==="b")computerTurn(opts.diff)}
-function listenGame(ref,side){
+async function listenGame(ref,side){
+ await ensureChess();
  gameRef=ref;unsubGame?.();unsubGame=onSnapshot(ref,s=>{if(!s.exists())return;const d=s.data();game=new Chess(d.fen);openGame(side,d.mode);renderBoard();if(d.result)toast("Game selesai: "+d.result)});}
 
 function renderBoard(){
