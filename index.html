@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chess Arena</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="toast"></div>
+
+  <section id="authView" class="screen">
+    <div class="auth-card glass">
+      <div class="brand">♟ <span>Chess Arena</span></div>
+      <p class="muted">Main catur realtime, berteman, dan latihan melawan komputer.</p>
+      <div class="tabs">
+        <button class="tab active" data-auth="login">Login</button>
+        <button class="tab" data-auth="signup">Sign Up</button>
+      </div>
+      <form id="authForm">
+        <input id="authEmail" type="email" placeholder="Email" required>
+        <input id="authPassword" type="password" placeholder="Password" minlength="6" required>
+        <input id="signupUsername" class="signup-only hidden" placeholder="Username" maxlength="20">
+        <input id="signupName" class="signup-only hidden" placeholder="Nama akun" maxlength="40">
+        <button class="primary" type="submit" id="authSubmit">Login</button>
+      </form>
+      <small class="muted">Email/password Firebase Authentication digunakan untuk akun.</small>
+    </div>
+  </section>
+
+  <section id="dashboardView" class="hidden">
+    <header class="topbar glass">
+      <div class="brand">♟ Chess Arena</div>
+      <nav>
+        <button data-page="home">Dashboard</button>
+        <button data-page="play">Play</button>
+        <button data-page="friends">Friends</button>
+        <button data-page="history">History</button>
+        <button data-page="profile">Profile</button>
+        <button id="adminNav" class="hidden" data-page="admin">Admin</button>
+      </nav>
+      <button id="logoutBtn" class="danger-outline">Logout</button>
+    </header>
+
+    <main>
+      <div id="maintenanceBanner" class="maintenance hidden"></div>
+      <section id="homePage" class="page">
+        <div class="hero glass">
+          <div>
+            <span class="eyebrow">WELCOME BACK</span>
+            <h1 id="welcomeName">Player</h1>
+            <p class="muted">Siap untuk pertandingan berikutnya?</p>
+          </div>
+          <button class="primary big" data-page="play">Play Chess</button>
+        </div>
+        <div class="stats-grid">
+          <article class="stat glass"><span>Rating</span><strong id="statElo">1000</strong><small id="statRank">Bronze</small></article>
+          <article class="stat glass"><span>Menang</span><strong id="statWins">0</strong></article>
+          <article class="stat glass"><span>Seri</span><strong id="statDraws">0</strong></article>
+          <article class="stat glass"><span>Kalah</span><strong id="statLosses">0</strong></article>
+        </div>
+        <div class="two-col">
+          <div class="panel glass"><h2>Recent Games</h2><div id="recentGames"></div></div>
+          <div class="panel glass"><h2>Announcements</h2><div id="announcements"></div></div>
+        </div>
+      </section>
+
+      <section id="playPage" class="page hidden">
+        <div class="panel glass">
+          <h2>Choose Game</h2>
+          <div class="mode-grid">
+            <button class="mode" data-mode="ranked"><b>♜ Ranked</b><span>Rating berubah sesuai hasil.</span></button>
+            <button class="mode" data-mode="classic"><b>♞ Classic</b><span>Tidak memengaruhi rating.</span></button>
+            <button class="mode" data-mode="friend"><b>♙ Friend</b><span>Main private dengan room code.</span></button>
+            <button class="mode" data-mode="computer"><b>🤖 Computer</b><span>Easy sampai Impossible.</span></button>
+            <button class="mode" data-mode="training"><b>🧠 Training</b><span>Private training tools.</span></button>
+          </div>
+        </div>
+        <div id="playSetup" class="panel glass hidden"></div>
+      </section>
+
+      <section id="friendsPage" class="page hidden">
+        <div class="two-col">
+          <div class="panel glass">
+            <h2>Add Friend</h2>
+            <form id="friendForm" class="inline-form"><input id="friendUsername" placeholder="Username"><button class="primary">Add</button></form>
+            <div id="friendRequests"></div>
+          </div>
+          <div class="panel glass"><h2>Friends</h2><div id="friendsList"></div></div>
+        </div>
+      </section>
+
+      <section id="historyPage" class="page hidden">
+        <div class="panel glass"><h2>Game History</h2><div id="historyList"></div></div>
+      </section>
+
+      <section id="profilePage" class="page hidden">
+        <div class="panel glass profile">
+          <h2>Profile</h2>
+          <div id="profileInfo"></div>
+        </div>
+      </section>
+
+      <section id="adminPage" class="page hidden">
+        <div class="panel glass">
+          <h2>Admin Panel</h2>
+          <div class="admin-tabs">
+            <button data-admin="users">Users</button>
+            <button data-admin="announce">Announcement</button>
+            <button data-admin="maintenance">Maintenance</button>
+            <button data-admin="access">Training Access</button>
+          </div>
+          <div id="adminContent"></div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section id="gameView" class="hidden">
+    <header class="topbar glass">
+      <div class="brand">♟ Chess Arena <span id="gameModeLabel"></span></div>
+      <div id="gameStatus">White to move</div>
+      <button id="leaveGame" class="danger-outline">Leave</button>
+    </header>
+    <main class="game-layout">
+      <aside class="panel glass side">
+        <h3 id="blackPlayer">Black</h3>
+        <div class="timer" id="blackTimer">10:00</div>
+        <hr>
+        <h3 id="whitePlayer">White</h3>
+        <div class="timer" id="whiteTimer">10:00</div>
+        <div id="roomInfo"></div>
+      </aside>
+      <div class="board-wrap">
+        <div id="chessboard" class="chessboard"></div>
+        <div class="board-actions">
+          <button id="drawBtn">Offer Draw</button>
+          <button id="resignBtn" class="danger-outline">Resign</button>
+        </div>
+      </div>
+      <aside class="panel glass side">
+        <h3>Moves</h3>
+        <div id="moveList" class="moves"></div>
+        <div id="trainingPanel" class="training-panel hidden">
+          <h3>Training Panel</h3>
+          <label>Hint <button id="hintBtn">Show</button></label>
+          <label>Auto move <button id="autoMoveBtn">AI Move</button></label>
+          <label>Difficulty
+            <select id="trainingDifficulty"><option>Easy</option><option>Normal</option><option>Hard</option><option>Super Hard</option><option>Impossible</option></select>
+          </label>
+          <p class="muted tiny">Training tools hanya tersedia pada private/training games yang diizinkan admin.</p>
+        </div>
+      </aside>
+    </main>
+  </section>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
