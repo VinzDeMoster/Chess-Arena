@@ -3,7 +3,7 @@
 A responsive chess website starter with Firebase email/password accounts, a dark blue chess-themed landing page, four-language UI shell (English, Indonesian, Japanese, Korean), chess board rules powered by chess.js, AI difficulty selector, custom room-code UI, player chat tabs, admin panel, and live announcement popup.
 
 ## Important scope note
-This is a starter/MVP, not a production-ready Chess.com clone. The local board supports legal chess moves and check/checkmate/draw detection. Easy AI is random; Medium/Hard/Impossible currently use a simple capture/check-priority heuristic and are **not** strong chess engines. Ranked matchmaking and ELO awards are not server-verified; room-code multiplayer board synchronization is not implemented yet. The room code UI stores room metadata only. Global/Local/Friends are separate chat feeds, but Local and Friends are not yet filtered to real geography/friend lists. User search/moderation is a client-side admin UI and should be moved to a trusted backend before public launch.
+This is a starter/MVP, not a production-ready Chess.com clone. The local board supports legal chess moves and check/checkmate/draw detection. Easy AI is random; Medium/Hard/Impossible currently use a simple capture/check-priority heuristic and are **not** strong chess engines. Ranked/Classic now include a client-side realtime queue, and Custom room moves sync between devices through Realtime Database. This is an MVP implementation: queue coordination and move validation are client-side and are not safe against cheating or race abuse. Ranked ELO awards are not yet server-verified. Global/Local/Friends are separate chat feeds, but Local and Friends are not yet filtered to real geography/friend lists. User search/moderation is a client-side admin UI and should be moved to a trusted backend before public launch.
 
 ## 1. Create Firebase project
 1. Open https://console.firebase.google.com/ and create a project.
@@ -27,7 +27,7 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - English, Indonesian, Japanese, Korean UI string switcher (some dynamically generated game/setup copy remains English).
 - Legal local chess moves, promotion to queen, check, checkmate and draw display.
 - AI mode selector (Easy / Medium / Hard / Impossible heuristic demo).
-- Custom local two-player mode and room-code create/join UI.
+- Custom online room-code create/join with live board synchronization across devices. Ranked and Classic queue for another connected player and open an online board when matched.
 - Global/Local/Friends chat feeds using Realtime Database.
 - Admin UI gated by `users/<uid>/role === "admin"` for user profile status actions and live announcements.
 - Live announcement popup for signed-in clients.
@@ -46,3 +46,12 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - If the account was created but the dashboard does not open, check **Realtime Database → Rules** and publish the rules from `database.rules.json`. The signed-in user must be allowed to read/write `users/<their UID>`.
 - Confirm the website's `firebaseConfig` points to the same Firebase project where the account was created.
 - The updated `app.js` displays a more specific error when Firebase Authentication or the profile database fails. Open browser developer tools if the issue persists.
+
+
+## Online multiplayer setup (important)
+- Publish the updated `database.rules.json` in Firebase Realtime Database → Rules.
+- Deploy the updated `app.js`, `index.html`, `style.css`, and rules file together. Both players must use the same Firebase project and current deployed version.
+- Custom: one player chooses Custom → Create online room and shares the code; the other chooses Custom and joins with that code. Moves should sync live.
+- Ranked/Classic: both players select the same mode while online; they are matched from the realtime queue. The queue is a prototype, not production-secure.
+- The current rules allow authenticated clients to write matchmaking queue data and do not enforce legal moves at the database layer. For a public competitive game, move matchmaking and result/ELO verification to Firebase Cloud Functions or another trusted server.
+- Chat messages now show the sender ELO captured when the message is sent. Existing old messages may not have ELO and display 20 by default.
