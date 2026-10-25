@@ -61,3 +61,13 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - Ranked/Classic: both players select the same mode while online; they are matched from the realtime queue. The queue is a prototype, not production-secure.
 - The current rules allow authenticated clients to write matchmaking queue data and do not enforce legal moves at the database layer. For a public competitive game, move matchmaking and result/ELO verification to Firebase Cloud Functions or another trusted server.
 - Chat messages now show the sender ELO captured when the message is sent. Existing old messages may not have ELO and display 20 by default.
+
+## Fix pack #6: chat + admin-granted AI Feature
+
+This version removes top-level `.read: false` / `.write: false` rules. In Firebase Realtime Database, a denial at a parent path overrides child permissions, so those root rules prevented the child chat rules from allowing reads/writes. Publish the included `database.rules.json` after deploying these files.
+
+The admin user search now includes **Grant AI Feature / Revoke AI Feature**. Granting it writes `users/<uid>/aiFeature = true`; a player cannot change this field through their own profile write under the included rules. Admin accounts have the feature automatically.
+
+During a game, eligible accounts see `⋯ Menu` and can request a suggested move for a win-oriented, draw-oriented, or intentionally weakening strategy. This is a basic local heuristic recommendation, not a strong chess engine, and it does not move a piece automatically. To preserve competitive fairness, do not treat it as a verified advantage or use it to misrepresent results. For a public competitive service, server-side enforcement and stronger security rules are recommended.
+
+Chat uses `chats/global`, `chats/local`, and `chats/friend` as separate channels. The form now awaits the Firebase write, shows a success toast on success, and reports the actual Firebase error on failure. All signed-in users can read these channels; do not put private information in them.

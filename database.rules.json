@@ -1,12 +1,10 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
     "users": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && ((!data.exists() && newData.child('role').val() === 'player') || (data.exists() && newData.child('role').val() === data.child('role').val()))))",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && ((!data.exists() && newData.child('role').val() === 'player' && !newData.child('aiFeature').exists()) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('aiFeature').val() === data.child('aiFeature').val()))))",
         "history": {
           "$historyId": {
             ".write": "auth != null && auth.uid === $uid",
@@ -20,8 +18,8 @@
       "$room": {
         ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500",
-          ".validate": "newData.hasChildren(['uid','name','text','createdAt']) && newData.child('name').isString() && newData.child('text').isString()"
+          ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500 && newData.child('name').isString() && newData.child('createdAt').isNumber()",
+          ".validate": "newData.hasChildren(['uid','name','text','createdAt']) && newData.child('uid').val() === auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('createdAt').isNumber()"
         }
       }
     },

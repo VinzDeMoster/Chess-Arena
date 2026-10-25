@@ -26,3 +26,13 @@
 .search-orbit span:nth-child(3){animation-delay:.28s}
 @keyframes searchBounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-12px);opacity:1}}
 #cancelMatchmakingBtn{min-width:132px}
+
+/* Admin-granted in-match AI recommendation panel */
+.ai-feature-panel{margin-top:14px;padding:16px;border:1px solid rgba(112,224,190,.45);border-radius:12px;background:linear-gradient(145deg,rgba(20,59,68,.92),rgba(9,26,43,.96))}
+.ai-feature-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ai-feature-heading>div{display:flex;flex-direction:column;gap:4px}
+.ai-feature-heading b{color:var(--mint);font:600 16px 'Space Grotesk',sans-serif}
+.ai-feature-heading small{font-size:11px;color:var(--muted)}
+.ai-feature-panel label{display:block;margin:14px 0}
+.ai-feature-panel label span{display:block;color:#bdcde0;font-size:12px;margin-bottom:8px}
+.ai-feature-panel .message{line-height:1.6;margin-bottom:0}
