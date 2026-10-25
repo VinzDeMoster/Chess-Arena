@@ -52,9 +52,9 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - Custom → **Main di satu perangkat** starts a local two-player board with no ELO shown or changed.
 - Custom → **Buat room online** creates a room code; the other player chooses Custom and joins with that code from their own device.
 - Settings lets users change their display name, change their password after re-authenticating with the current password, and view saved match history.
-- The updated `database.rules.json` supports history reads/writes for the signed-in owner and allows a guest to join a waiting room. Publish the entire rules file in Firebase Console for these changes to take effect.
+- The included `database.rules.json` supports history reads/writes for the signed-in owner and allows a guest to join a waiting room. Publish the entire rules file in Firebase Console for these changes to take effect. Replacing the website files does not publish Firebase Rules automatically.
 
-## Online multiplayer setup (important)
+## Fixes in this package\n- Custom room joining reads the room first, gives specific error messages, then claims the guest slot with a single multi-field update instead of aborting a transaction when its local value is null. The RTDB Rules must be published from this package for the guest-slot update to be allowed.\n- Ranked/Classic show a dedicated animated “Sedang Menunggu Player” screen with a Cancel button while queued; the board appears after a match is found. The online board is oriented to the current player.\n- Chat write rules explicitly validate message fields and sender UID. If chat still fails, publish the included Rules and read the exact permission error shown by the site.\n\n## Online multiplayer setup (important)
 - Publish the updated `database.rules.json` in Firebase Realtime Database → Rules.
 - Deploy the updated `app.js`, `index.html`, `style.css`, and rules file together. Both players must use the same Firebase project and current deployed version.
 - Custom: one player chooses Custom → Create online room and shares the code; the other chooses Custom and joins with that code. Moves should sync live.

@@ -49,7 +49,8 @@ $("profileSettingsForm").onsubmit=async e=>{e.preventDefault();if(!state.user||!
 $("passwordSettingsForm").onsubmit=async e=>{e.preventDefault();if(!state.user)return;const current=$("currentPassword").value,newPass=$("newPassword").value;if(newPass.length<6){$("settingsMessage").textContent="Kata sandi baru minimal 6 karakter.";return}try{const credential=EmailAuthProvider.credential(state.user.email,current);await reauthenticateWithCredential(state.user,credential);await updatePassword(state.user,newPass);$("passwordSettingsForm").reset();$("settingsMessage").textContent="Kata sandi berhasil diubah."}catch(err){$("settingsMessage").textContent=err.code==="auth/wrong-password"||err.code==="auth/invalid-credential"?"Kata sandi saat ini salah.":"Gagal mengubah kata sandi: "+err.message}};
 async function loadMatchHistory(){const box=$("matchHistory");if(!box)return;box.innerHTML='<div class="empty">Memuat riwayat…</div>';try{const snap=await get(ref(db,`users/${state.user.uid}/history`));const rows=[];snap.forEach(c=>rows.push({...c.val(),key:c.key}));rows.sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));box.innerHTML="";rows.slice(0,20).forEach(h=>{const el=document.createElement("div");el.className="history-item";const title=document.createElement("strong");title.textContent=(h.mode==="custom-local"?"CUSTOM · SATU PERANGKAT":(h.mode||"Game").toUpperCase())+" · "+(h.result||"Selesai");const meta=document.createElement("small");meta.textContent=new Date(h.endedAt||Date.now()).toLocaleString()+" · "+(h.opponent||"Lawan")+(h.eloChange?` · ELO ${h.eloChange>0?"+":""}${h.eloChange}`:"");el.append(title,meta);box.appendChild(el)});if(!box.children.length)box.innerHTML='<div class="empty">Belum ada pertandingan tersimpan.</div>'}catch(err){box.innerHTML='<div class="empty">Riwayat tidak dapat dimuat. Periksa Firebase Rules.</div>';console.error(err)}}
 document.querySelectorAll(".mode-card").forEach(b=>b.onclick=()=>openMode(b.dataset.mode));
-$("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUnsub();state.roomUnsub=null}state.onlineRoom=null;state.onlineColor=null;state.game=null;state.selected=null;$("gamePanel").classList.add("hidden")};
+$("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUnsub();state.roomUnsub=null}state.onlineRoom=null;state.onlineColor=null;state.game=null;state.selected=null;$("gamePanel").classList.add("hidden");$("matchmakingScreen").classList.add("hidden");$("gameLayout").classList.remove("hidden")};
+$("cancelMatchmakingBtn").onclick=()=>{$("closeGame").click();toast("Pencarian lawan dibatalkan.")};
  function randomRoomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
  function openMode(mode){
   state.mode=mode;
@@ -68,14 +69,14 @@ $("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUn
   }
   showModal("modeModal")
  }
- function prepareBoard(mode,title){state.mode=mode;state.game=new Chess();state.selected=null;state.legal=[];state.flipped=false;state.matchmaking=false;$("gamePanel").classList.remove("hidden");$("gameModeLabel").textContent=mode.toUpperCase();$("gameTitle").textContent=title;$("gamePanel").scrollIntoView({behavior:"smooth",block:"start"})}
+ function prepareBoard(mode,title){state.mode=mode;state.game=new Chess();state.selected=null;state.legal=[];state.flipped=false;state.matchmaking=false;$("gamePanel").classList.remove("hidden");$("matchmakingScreen").classList.add("hidden");$("gameLayout").classList.remove("hidden");$("gameModeLabel").textContent=mode.toUpperCase();$("gameTitle").textContent=title;$("gamePanel").scrollIntoView({behavior:"smooth",block:"start"})}
  function startLocalGame(mode,opponent="Opponent",difficulty="easy"){
   state.onlineRoom=null;state.onlineColor=null;state.opponent={name:opponent,difficulty};prepareBoard(mode,mode==="ai"?"Practice against AI":"Local chess game");
   $("whiteName").textContent=state.profile.name||"You";$("whiteElo").textContent=mode.startsWith("custom")?"":"ELO "+(state.profile.elo??20);$("blackName").textContent=opponent;$("blackElo").textContent=mode==="ai"?"AI · "+difficulty:mode.startsWith("custom")?"":"ELO —";$("gameHint").textContent=mode==="ai"?"Choose a piece and a highlighted square.":mode==="custom-local"?"Dua pemain bergantian di perangkat yang sama. ELO tidak ditampilkan atau diubah.":"Local game on this device.";renderBoard()
  }
  async function startMatchmaking(mode){
   if(!state.user||!state.profile)return;hideModal("modeModal");if(state.queueUnsub){state.queueUnsub();state.queueUnsub=null}if(state.roomUnsub){state.roomUnsub();state.roomUnsub=null}
-  state.onlineRoom=null;state.onlineColor=null;prepareBoard(mode,mode==="ranked"?"Finding ranked opponent…":"Finding classic opponent…");state.matchmaking=true;state.opponent={name:"Searching…"};$("whiteName").textContent=state.profile.name||"You";$("whiteElo").textContent="ELO "+(state.profile.elo??20);$("blackName").textContent="Searching for opponent…";$("blackElo").textContent="ELO —";$("gameStatus").textContent="Searching for a real player…";$("gameHint").textContent="Keep this page open. The board will start automatically when a player is found.";renderBoard();
+  state.onlineRoom=null;state.onlineColor=null;prepareBoard(mode,mode==="ranked"?"Ranked":"Classic");state.matchmaking=true;$("gameLayout").classList.add("hidden");$("matchmakingScreen").classList.remove("hidden");$("matchmakingTitle").textContent="Sedang Menunggu Player";$("matchmakingSubtitle").textContent=mode==="ranked"?"Mencari lawan Ranked yang tersedia…":"Mencari lawan Classic yang tersedia…";$("cancelMatchmakingBtn").classList.remove("hidden");state.opponent={name:"Searching…"};$("whiteName").textContent=state.profile.name||"You";$("whiteElo").textContent="ELO "+(state.profile.elo??20);$("blackName").textContent="Searching for opponent…";$("blackElo").textContent="ELO —";$("gameStatus").textContent="Searching for a real player…";$("gameHint").textContent="Keep this page open. The board will start automatically when a player is found.";renderBoard();
   const uid=state.user.uid, now=Date.now(), queueRef=ref(db,`matchmaking/${mode}`);
   try{
    const tx=await runTransaction(queueRef,current=>{current=current||{};const fresh={};for(const [id,p] of Object.entries(current)){if(p&&p.status==="waiting"&&now-(p.createdAt||0)<120000)fresh[id]=p;else if(p&&p.status==="matched"&&now-(p.matchedAt||p.createdAt||0)<120000)fresh[id]=p;}
@@ -88,7 +89,7 @@ $("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUn
    const all=tx.snapshot.val()||{}, mine=all[uid];if(mine?.status==="matched")await handleMatchedQueue(mode,mine);else{
     state.queueUnsub=onValue(queueRef,async snap=>{const mineNow=snap.val()?.[uid];if(mineNow?.status==="matched"){state.queueUnsub?.();state.queueUnsub=null;try{await handleMatchedQueue(mode,mineNow)}catch(e){toast("Gagal membuka pertandingan: "+e.message)}}});
    }
-  }catch(e){state.matchmaking=false;$("gameStatus").textContent="Matchmaking gagal";$("gameHint").textContent=e.message+" — periksa Firebase Realtime Database Rules.";toast("Matchmaking gagal: "+e.message)}
+  }catch(e){state.matchmaking=false;$("matchmakingTitle").textContent="Pencarian gagal";$("matchmakingSubtitle").textContent=e.message+" — periksa Firebase Realtime Database Rules.";toast("Matchmaking gagal: "+e.message)}
  }
  async function handleMatchedQueue(mode,entry){
   if(!state.user||!state.game)return;const code=entry.roomCode;if(!code)return;state.matchmaking=false;
@@ -96,7 +97,7 @@ $("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUn
   else{const roomRef=ref(db,`rooms/${code}`);let attempts=0;const unsub=onValue(roomRef,snap=>{if(snap.exists()){unsub();const room=snap.val();startOnlineGame(code,mode,"black",room)}else if(++attempts>30){unsub();toast("Room belum tersedia. Coba cari pertandingan lagi.")}})}
  }
  function startOnlineGame(code,mode,color,roomData){
-  if(state.roomUnsub){state.roomUnsub();state.roomUnsub=null}state.onlineRoom=code;state.onlineColor=color;state.onlineMoves=roomData.moves||[];state.mode=mode;state.matchmaking=false;state.opponent={name:color==="white"?(roomData.guestName||"Menunggu teman"):(roomData.hostName||"Player")};
+  if(state.roomUnsub){state.roomUnsub();state.roomUnsub=null}state.onlineRoom=code;state.onlineColor=color;state.onlineMoves=roomData.moves||[];state.mode=mode;state.matchmaking=false;state.flipped=color==="black";$("matchmakingScreen").classList.add("hidden");$("gameLayout").classList.remove("hidden");state.opponent={name:color==="white"?(roomData.guestName||"Menunggu teman"):(roomData.hostName||"Player")};
   if(!state.game)state.game=new Chess();$("gameTitle").textContent=mode==="ranked"?"Ranked Match":mode==="classic"?"Classic Match":"Custom Room · "+code;$("gameModeLabel").textContent=mode.toUpperCase()+" · ONLINE";$("whiteName").textContent=roomData.hostName||"White";$("whiteElo").textContent=mode==="custom"?"":"ELO "+(roomData.hostElo??20);$("blackName").textContent=roomData.guestName||"Waiting for opponent…";$("blackElo").textContent=mode==="custom"?"":roomData.guestUid?"ELO "+(roomData.guestElo??20):"Waiting…";$("gameHint").textContent=(mode==="custom"?"Room code: "+code+" · Share this code with your friend. ":"")+"Online match · your moves sync live across devices.";
   state.roomUnsub=onValue(ref(db,`rooms/${code}`),snap=>{if(!snap.exists())return;const room=snap.val();if(!state.game)state.game=new Chess();try{if(room.fen&&state.game.fen()!==room.fen)state.game.load(room.fen)}catch(e){console.warn("Could not sync FEN",e)}
    if(state.user.uid===room.hostUid){$("whiteName").textContent=room.hostName||"White";$("whiteElo").textContent=mode==="custom"?"":"ELO "+(room.hostElo??20);$("blackName").textContent=room.guestName||"Menunggu teman…";$("blackElo").textContent=mode==="custom"?"":room.guestUid?"ELO "+(room.guestElo??20):"Menunggu…"}
@@ -105,7 +106,43 @@ $("closeGame").onclick=()=>{cancelMatchmaking();if(state.roomUnsub){state.roomUn
   });
  }
  async function createRoom(){if(!state.user)return;const code=randomRoomCode();const room={code,mode:"custom",hostUid:state.user.uid,hostName:state.profile.name||"Player",hostElo:state.profile.elo??20,guestName:"",guestElo:null,createdAt:Date.now(),status:"waiting",fen:new Chess().fen(),moves:[]};try{await set(ref(db,`rooms/${code}`),room);hideModal("modeModal");prepareBoard("custom","Custom Room · "+code);state.game=new Chess();startOnlineGame(code,"custom","white",room);toast("Kode room kamu: "+code)}catch(e){$("modalMessage").textContent="Gagal membuat room: "+e.message}}
- async function joinRoom(){const code=$("roomCodeInput").value.trim().toUpperCase();if(!code)return;$("modalMessage").textContent="";try{const roomRef=ref(db,`rooms/${code}`);const tx=await runTransaction(roomRef,current=>{if(!current||current.status!=="waiting"||current.hostUid===state.user.uid||current.guestUid)return;current.guestUid=state.user.uid;current.guestName=state.profile.name||"Player";current.guestElo=state.profile.elo??20;current.status="playing";current.updatedAt=Date.now();return current});if(!tx.committed){$("modalMessage").textContent="Room tidak bisa dimasuki. Periksa kode (huruf/angka), pastikan status masih menunggu dan belum ada tamu. Jika room baru dibuat tetapi tetap gagal, Rules Realtime Database di Firebase mungkin belum diperbarui.";return}const room=tx.snapshot.val();hideModal("modeModal");prepareBoard("custom","Custom Room · "+code);state.game=new Chess();startOnlineGame(code,"custom", "black",room);toast("Berhasil masuk room "+code)}catch(e){console.error("joinRoom failed",e);$("modalMessage").textContent="Gagal masuk room ("+(e.code||"error")+"): "+e.message+". Pastikan Rules terbaru sudah di-Publish di Firebase."}}
+ async function joinRoom(){
+  const code=$("roomCodeInput").value.trim().toUpperCase();
+  if(!code){$("modalMessage").textContent="Masukkan kode room terlebih dahulu.";return}
+  if(!state.user||!state.profile){$("modalMessage").textContent="Silakan login terlebih dahulu.";return}
+  $("modalMessage").textContent="Memeriksa room…";
+  const btn=$("joinRoom");btn.disabled=true;
+  try{
+    const roomRef=ref(db,`rooms/${code}`);
+    // Read first so the client does not abort a transaction on an uncached null value.
+    const snap=await get(roomRef);
+    if(!snap.exists()){$("modalMessage").textContent="Kode room tidak ditemukan. Periksa kembali kode yang diberikan teman.";return}
+    const room=snap.val();
+    if(room.hostUid===state.user.uid){$("modalMessage").textContent="Kamu adalah pembuat room ini. Gunakan perangkat/akun teman untuk bergabung.";return}
+    if(room.status!=="waiting"||room.guestUid){$("modalMessage").textContent="Room sudah dimulai atau sudah memiliki pemain kedua. Minta teman membuat room baru.";return}
+    // Claim the guest slot with one atomic multi-field update. Rules only permit this
+    // while the room is waiting and has no guest, avoiding runTransaction(null) aborts.
+    await update(roomRef,{
+      guestUid:state.user.uid,
+      guestName:state.profile.name||"Player",
+      guestElo:state.profile.elo??20,
+      status:"playing",
+      updatedAt:Date.now()
+    });
+    const joinedSnap=await get(roomRef);
+    const joined=joinedSnap.val();
+    if(!joinedSnap.exists()||joined.guestUid!==state.user.uid){
+      $("modalMessage").textContent="Room sudah diambil pemain lain atau tidak bisa diakses. Minta teman membuat room baru.";
+      return;
+    }
+    hideModal("modeModal");prepareBoard("custom","Custom Room · "+code);
+    startOnlineGame(code,"custom","black",joined);
+    toast("Berhasil masuk room "+code);
+  }catch(e){
+    console.error("joinRoom failed",e);
+    $("modalMessage").textContent="Gagal masuk room ("+(e.code||"error")+"): "+e.message+". Periksa Firebase Rules dan pastikan room dibuat pada proyek Firebase yang sama.";
+  }finally{btn.disabled=false}
+}
  async function submitOnlineMove(from,to){const code=state.onlineRoom;if(!code||!state.user)return;const roomRef=ref(db,`rooms/${code}`);try{const tx=await runTransaction(roomRef,current=>{if(!current||current.status!=="playing")return;const myColor=current.hostUid===state.user.uid?"w":current.guestUid===state.user.uid?"b":null;if(!myColor)return;const game=new Chess(current.fen||new Chess().fen());if(game.turn()!==myColor)return;let move;try{move=game.move({from,to,promotion:"q"})}catch(e){return}if(!move)return;current.fen=game.fen();current.moves=game.history();current.updatedAt=Date.now();if(game.isGameOver())current.status="finished";return current});if(!tx.committed)toast("Belum giliran kamu atau langkah tidak valid.")}catch(e){toast("Langkah gagal disinkronkan: "+e.message)}}
  function cancelMatchmaking(){if(state.queueUnsub){state.queueUnsub();state.queueUnsub=null}if(state.user&&state.mode&&(state.mode==="ranked"||state.mode==="classic"))remove(ref(db,`matchmaking/${state.mode}/${state.user.uid}`)).catch(()=>{});state.matchmaking=false}
 function renderBoard(){if(!state.game)return;const board=$("board");board.innerHTML="";const grid=state.game.board();const files=state.flipped?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];const ranks=state.flipped?[0,1,2,3,4,5,6,7]:[7,6,5,4,3,2,1,0];for(const r of ranks)for(const c of files){const sq=String.fromCharCode(97+c)+(r+1),piece=grid[7-r][c],el=document.createElement("button");el.className="square "+(((r+c)%2===0)?"light":"dark");el.dataset.square=sq;el.setAttribute("aria-label",sq);if(state.selected===sq)el.classList.add("selected");if(state.legal.includes(sq))el.classList.add("legal");if(piece)el.classList.add("has-piece");if(piece)el.textContent=pieceGlyph[piece.color][piece.type];if(state.game.isCheck()&&piece?.type==="k"&&piece.color===state.game.turn())el.classList.add("check");el.onclick=()=>clickSquare(sq);board.appendChild(el)}$("gameStatus").textContent=gameStatus();$("whiteTurn").classList.toggle("active",state.game.turn()==="w"&&!state.game.isGameOver());$("blackTurn").classList.toggle("active",state.game.turn()==="b"&&!state.game.isGameOver());const hist=state.onlineRoom?(state.onlineMoves||[]):state.game.history();$("moveList").textContent=hist.length?hist.reduce((a,m,i)=>a+(i%2===0?`${Math.floor(i/2)+1}. `:"")+m+(i%2===1?"\n":" "), ""):"No moves yet";if(state.game.isGameOver())finishGame();else if(state.mode==="ai"&&state.game.turn()==="b")setTimeout(makeAIMove,350)}

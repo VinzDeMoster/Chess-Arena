@@ -21,14 +21,14 @@
         ".read": "auth != null",
         "$messageId": {
           ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500",
-          ".validate": "newData.hasChildren(['uid','name','text','createdAt'])"
+          ".validate": "newData.hasChildren(['uid','name','text','createdAt']) && newData.child('name').isString() && newData.child('text').isString()"
         }
       }
     },
     "rooms": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && ((data.exists() && (data.child('hostUid').val() === auth.uid || data.child('guestUid').val() === auth.uid)) || (!data.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('status').val() === 'waiting' && !data.child('guestUid').exists() && newData.child('guestUid').val() === auth.uid && newData.child('hostUid').val() === data.child('hostUid').val()))"
+        ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid) || (data.exists() && data.child('guestUid').val() === auth.uid) || (data.exists() && data.child('status').val() === 'waiting' && !data.child('guestUid').exists() && newData.child('guestUid').val() === auth.uid && newData.child('hostUid').val() === data.child('hostUid').val() && newData.child('status').val() === 'playing'))"
       }
     },
     "matchmaking": {

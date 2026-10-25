@@ -14,3 +14,15 @@
 .history-item{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid rgba(148,163,184,.18);border-radius:10px;background:rgba(15,23,42,.38)}
 .history-item strong{font-size:.9rem}
 .history-item small{font-size:.78rem;color:var(--muted,#8fa4bd)}
+
+
+/* Online matchmaking: show a dedicated waiting screen before the board is opened. */
+.matchmaking-screen{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 18px;gap:12px;background:radial-gradient(ellipse at center,rgba(33,82,119,.28),rgba(7,20,36,.15) 68%);border:1px solid rgba(112,224,190,.15);border-radius:18px}
+.matchmaking-screen h2{margin:6px 0 0;font-size:clamp(22px,4vw,30px)}
+.matchmaking-screen p{color:var(--muted,#8fa4bd);margin:0 0 12px}
+.search-orbit{height:48px;display:flex;align-items:center;justify-content:center;gap:8px}
+.search-orbit span{display:block;width:10px;height:10px;border-radius:50%;background:var(--mint,#70e0be);animation:searchBounce .85s ease-in-out infinite}
+.search-orbit span:nth-child(2){animation-delay:.14s}
+.search-orbit span:nth-child(3){animation-delay:.28s}
+@keyframes searchBounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-12px);opacity:1}}
+#cancelMatchmakingBtn{min-width:132px}
