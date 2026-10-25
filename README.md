@@ -71,3 +71,10 @@ The admin user search now includes **Grant AI Feature / Revoke AI Feature**. Gra
 During a game, eligible accounts see `⋯ Menu` and can request a suggested move for a win-oriented, draw-oriented, or intentionally weakening strategy. This is a basic local heuristic recommendation, not a strong chess engine, and it does not move a piece automatically. To preserve competitive fairness, do not treat it as a verified advantage or use it to misrepresent results. For a public competitive service, server-side enforcement and stronger security rules are recommended.
 
 Chat uses `chats/global`, `chats/local`, and `chats/friend` as separate channels. The form now awaits the Firebase write, shows a success toast on success, and reports the actual Firebase error on failure. All signed-in users can read these channels; do not put private information in them.
+
+
+## v7 updates
+- Chat message writes now explicitly validate the complete payload including numeric ELO and timestamp. Publish the included `database.rules.json` to Realtime Database for the new rules to take effect.
+- Added translated labels for AI recommendation and GM-style selector in English, Indonesian, Japanese, and Korean.
+- Added heuristic GM-inspired preference profiles (Hikaru Nakamura, Magnus Carlsen, D. Gukesh, Fabiano Caruana, Judit Polgár, Garry Kasparov, Vladimir Kramnik, Ding Liren). These are style-inspired heuristic biases, **not** a database of each player's actual moves and not a strong chess engine. Recommendations remain a single suggested move.
+- Chat channels remain separate feeds; Local and Friends are not yet filtered by actual location/friend relationships.

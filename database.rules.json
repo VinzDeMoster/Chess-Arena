@@ -15,11 +15,11 @@
       }
     },
     "chats": {
-      "$room": {
+      "$channel": {
         ".read": "auth != null",
         "$messageId": {
-          ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500 && newData.child('name').isString() && newData.child('createdAt').isNumber()",
-          ".validate": "newData.hasChildren(['uid','name','text','createdAt']) && newData.child('uid').val() === auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('createdAt').isNumber()"
+          ".write": "auth != null && !data.exists() && newData.hasChildren(['uid','name','text','elo','createdAt']) && newData.child('uid').val() === auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500 && newData.child('elo').isNumber() && newData.child('createdAt').isNumber()",
+          ".validate": "newData.hasChildren(['uid','name','text','elo','createdAt']) && newData.child('uid').val() === auth.uid && newData.child('name').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500 && newData.child('elo').isNumber() && newData.child('createdAt').isNumber()"
         }
       }
     },
