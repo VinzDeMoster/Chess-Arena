@@ -78,3 +78,10 @@ Chat uses `chats/global`, `chats/local`, and `chats/friend` as separate channels
 - Added translated labels for AI recommendation and GM-style selector in English, Indonesian, Japanese, and Korean.
 - Added heuristic GM-inspired preference profiles (Hikaru Nakamura, Magnus Carlsen, D. Gukesh, Fabiano Caruana, Judit Polgár, Garry Kasparov, Vladimir Kramnik, Ding Liren). These are style-inspired heuristic biases, **not** a database of each player's actual moves and not a strong chess engine. Recommendations remain a single suggested move.
 - Chat channels remain separate feeds; Local and Friends are not yet filtered by actual location/friend relationships.
+
+
+## v8 AI search improvement
+- Replaced the one-ply material/capture heuristic with deterministic alpha-beta search over legal moves (root move plus two reply plies), with move ordering, terminal-position handling, material and positional evaluation, center control, development/activity, and light GM-style preferences.
+- Win mode selects the best searched evaluation; draw mode favors drawn outcomes or evaluations closer to equality; lose mode deliberately selects the weakest searched move.
+- The GM labels are style-inspired biases only. They do not contain a verified opening/game database for each grandmaster and cannot promise a win. For stronger analysis, integrate Stockfish WASM in a Web Worker and/or a verified opening database.
+- This remains a browser-side heuristic engine, not a tournament-strength engine. Search depth is intentionally limited for mobile performance.

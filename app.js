@@ -177,29 +177,115 @@ $("aiGoal").addEventListener("change",()=>{state.aiRecommendationFen=null;if(sta
 $("gmMode").addEventListener("change",()=>{state.aiRecommendationFen=null;if(state.game)renderBoard()});
 syncAiModeSwitches();
 function updateAiFeatureAccess(){const allowed=!!state.aiFeature;$("matchMenuBtn").classList.toggle("hidden",!allowed);if(!allowed)$("aiFeaturePanel").classList.add("hidden")}
-function mobility(game,color){const turn=game.turn();try{game.setTurn?.(color)}catch{}return game.moves().length}
-function kingSafety(game,color){const board=game.board();let king=null;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(board[r][c]?.type==="k"&&board[r][c].color===color)king={r,c};if(!king)return 0;let cover=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const r=king.r+dr,c=king.c+dc;if(r>=0&&r<8&&c>=0&&c<8&&board[r][c]?.color===color)cover++}return cover}
+const AI_PIECE_VALUE={p:100,n:320,b:335,r:500,q:900,k:0};
+function aiPieceSquareBonus(piece,r,c,color,gm){
+  const rr=color==="w"?7-r:r, cc=color==="w"?c:7-c;
+  const center=3.5-(Math.abs(3.5-r)+Math.abs(3.5-c))/2;
+  let v=0;
+  if(piece==="p"){v+=rr*5; if(rr>=3&&cc>=2&&cc<=5)v+=8;}
+  if(piece==="n"||piece==="b")v+=center*(piece==="n"?9:5);
+  if(piece==="q")v+=center*2;
+  if(piece==="r"&&rr===1)v+=10;
+  if(piece==="k"&&rr>=2)v-=center*3;
+  if(["magnus","caruana","kramnik","ding","balanced"].includes(gm) && (piece==="p"||piece==="n"||piece==="b"))v+=center*1.5;
+  if(["hikaru","kasparov","gukesh","judit"].includes(gm) && (piece==="q"||piece==="r"||piece==="n"))v+=center*0.8;
+  return v;
+}
+function aiEvaluate(game,rootColor,gm){
+  if(game.isCheckmate()) return game.turn()===rootColor?-100000:100000;
+  if(game.isDraw()) return 0;
+  const board=game.board();let score=0,phase=0;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=board[r][c];if(!p)continue;
+    const sign=p.color===rootColor?1:-1;
+    score+=sign*(AI_PIECE_VALUE[p.type]+aiPieceSquareBonus(p.type,r,c,p.color,gm));
+    if(p.type!=="p"&&p.type!=="k")phase+=1;
+  }
+  // Prefer development, central control, and king safety without overriding tactics.
+  const center=["d4","e4","d5","e5"];
+  for(const sq of center){
+    const p=game.get(sq);
+    if(p)score+=(p.color===rootColor?1:-1)*(p.type==="p"?8:4);
+  }
+  const turnBefore=game.turn();
+  // Small check pressure bonus, not a substitute for search.
+  if(game.isCheck()) score+=(turnBefore===rootColor?-18:18);
+  if(gm==="hikaru"||gm==="kasparov"||gm==="gukesh"||gm==="judit"){
+    if(game.isCheck())score+=turnBefore===rootColor?-4:4;
+  }
+  return score;
+}
+function aiMoveOrder(game,moves){
+  return moves.sort((a,b)=>{
+    const value=m=> (m.captured?(AI_PIECE_VALUE[m.captured]||0)*10-(AI_PIECE_VALUE[m.piece]||0):0)+(m.promotion?8000:0)+(m.san?.includes("+")?80:0)+(m.san?.includes("#")?100000:0);
+    return value(b)-value(a);
+  });
+}
+function aiSearch(game,depth,alpha,beta,rootColor,gm,ply=0){
+  if(depth<=0||game.isGameOver())return aiEvaluate(game,rootColor,gm);
+  const maximizing=game.turn()===rootColor;
+  let best=maximizing?-Infinity:Infinity;
+  const moves=aiMoveOrder(game,game.moves({verbose:true}));
+  for(const m of moves){
+    game.move({from:m.from,to:m.to,promotion:m.promotion||"q"});
+    const val=aiSearch(game,depth-1,alpha,beta,rootColor,gm,ply+1);
+    game.undo();
+    if(maximizing){if(val>best)best=val;if(best>alpha)alpha=best;}
+    else{if(val<best)best=val;if(best<beta)beta=best;}
+    if(beta<=alpha)break;
+  }
+  return best;
+}
+function gmRootPreference(m,gm,game){
+  const center=["d4","e4","d5","e5"];
+  let b=0;
+  // Gentle style biases only: the tactical search remains dominant.
+  if(["hikaru","kasparov","gukesh","judit"].includes(gm)){if(m.captured)b+=10;if(m.san?.includes("+"))b+=8;}
+  if(["magnus","caruana","kramnik","ding","balanced"].includes(gm)){if(center.includes(m.to))b+=5;if(m.piece==="n"||m.piece==="b")b+=3;}
+  if(gm==="kramnik"||gm==="ding"){if(m.san?.includes("+"))b-=1;}
+  return b;
+}
 function recommendAiMove(automatic=false){
  if(!state.game||state.game.isGameOver()){ $("aiRecommendation").textContent="Tidak ada langkah yang bisa direkomendasikan sekarang.";return }
  if(!state.aiFeature){$("aiRecommendation").textContent="Akses AI Feature belum diberikan admin.";return}
  if(state.onlineRoom&&state.game.turn()!==(state.onlineColor==="white"?"w":"b")){ $("aiRecommendation").textContent="Tunggu giliranmu sebelum meminta rekomendasi.";return }
- state.aiRecommendedMove=null;const currentFen=state.game.fen();state.aiRecommendationFen=currentFen;const moves=state.game.moves({verbose:true});if(!moves.length){$("aiRecommendation").textContent="Tidak ada langkah legal.";return}
- const goal=$("aiGmToggle").checked?"win":$("aiGoal").value;
- const material=game=>{const val={p:100,n:320,b:330,r:500,q:900,k:0};let score=0;for(const row of game.board())for(const pc of row)if(pc)score+=(pc.color==="w"?1:-1)*(val[pc.type]||0);return score};
- const scored=moves.map(m=>{const clone=new Chess(state.game.fen());clone.move({from:m.from,to:m.to,promotion:m.promotion||"q"});let score=material(clone)*(state.game.turn()==="w"?1:-1);if(clone.isCheckmate())score+=100000;if(clone.isCheck())score+=25;if(m.captured)score+=({p:100,n:320,b:330,r:500,q:900}[m.captured]||0)*0.8;
+ state.aiRecommendedMove=null;
+ const currentFen=state.game.fen();state.aiRecommendationFen=currentFen;
+ const moves=state.game.moves({verbose:true});
+ if(!moves.length){$("aiRecommendation").textContent="Tidak ada langkah legal.";return}
+ const rootColor=state.game.turn();
  const gm=$("aiGmToggle")?.checked?($("gmMode")?.value||"balanced"):"balanced";
- const center=["d4","e4","d5","e5"];
- const destination=m.to;
- if(["hikaru","kasparov"].includes(gm)){if(["g1","b1","g8","b8"].includes(m.from)&&!["g1","b1","g8","b8"].includes(destination))score+=18;if(m.captured)score+=35;if(clone.isCheck())score+=18}
- if(gm==="magnus"){if(m.captured)score+=12;if(["d4","e4","d5","e5"].includes(destination))score+=12;score+=mobility(clone,state.game.turn())*0.25}
- if(gm==="gukesh"){if(clone.isCheck())score+=22;if(m.captured)score+=25}
- if(gm==="caruana"){if(["d4","e4","d5","e5"].includes(destination))score+=18;score+=mobility(clone,state.game.turn())*0.3}
- if(gm==="judit"){if(m.captured)score+=28;if(clone.isCheck())score+=20}
- if(gm==="kramnik"){if(clone.isDraw())score-=12;score+=kingSafety(clone,state.game.turn())*0.4}
- if(gm==="ding"){score+=kingSafety(clone,state.game.turn())*0.3;if(clone.isCheck())score+=8}
- score+=Math.random()*0.01;return {m,score,clone}});
- let choice;if(goal==="win")choice=scored.sort((a,b)=>b.score-a.score)[0];else if(goal==="draw"){choice=scored.sort((a,b)=>{const aa=Math.abs(a.score),bb=Math.abs(b.score);const da=a.clone.isDraw()? -100000:0,db=b.clone.isDraw()?-100000:0;return (da+aa)-(db+bb)})[0]}else choice=scored.sort((a,b)=>a.score-b.score)[0];
- const g=choice.m;state.aiRecommendationFen=currentFen;state.selected=g.from;state.legal=state.game.moves({square:g.from,verbose:true}).map(x=>x.to);state.aiRecommendedMove={from:g.from,to:g.to};renderBoard();$("aiRecommendation").textContent=`Saran (${({"balanced":"GM Balanced","hikaru":"Hikaru-inspired","magnus":"Carlsen-inspired","gukesh":"Gukesh-inspired","caruana":"Caruana-inspired","judit":"Polgár-inspired","kasparov":"Kasparov-inspired","kramnik":"Kramnik-inspired","ding":"Ding-inspired"})[$("gmMode")?.value||"balanced"]}): ${g.from.toUpperCase()} → ${g.to.toUpperCase()}${g.promotion?"="+g.promotion.toUpperCase():""}. ${goal==="win"?"Dipilih untuk mencari posisi lebih kuat.":goal==="draw"?"Dipilih untuk mendekati posisi seimbang atau seri.":"Dipilih sebagai langkah yang cenderung melemahkan posisi."} Pilih langkah itu sendiri jika ingin memainkannya.`;
+ const goal=$("aiGmToggle")?.checked?"win":$("aiGoal").value;
+ const scored=[];
+ // Search each legal move and then examine opponent replies. Depth 3 total including root move.
+ for(const m of aiMoveOrder(state.game,moves.slice())){
+   state.game.move({from:m.from,to:m.to,promotion:m.promotion||"q"});
+   let score=aiSearch(state.game,2,-Infinity,Infinity,rootColor,gm,1);
+   const mate=state.game.isCheckmate();
+   state.game.undo();
+   if(mate)score=100000;
+   score+=gmRootPreference(m,gm,state.game);
+   // Deterministic tie-breaker: no random selection that can recommend careless moves.
+   scored.push({m,score});
+ }
+ let choice;
+ if(goal==="draw"){
+   // Seek a forced draw first, otherwise prefer the safest score nearest equality.
+   const drawn=scored.filter(x=>{const g=new Chess(currentFen);g.move({from:x.m.from,to:x.m.to,promotion:x.m.promotion||"q"});return g.isDraw()});
+   choice=drawn[0]||scored.sort((a,b)=>Math.abs(a.score)-Math.abs(b.score))[0];
+ }else if(goal==="lose"){
+   choice=scored.sort((a,b)=>a.score-b.score)[0];
+ }else{
+   choice=scored.sort((a,b)=>b.score-a.score)[0];
+ }
+ const g=choice.m;
+ state.aiRecommendationFen=currentFen;
+ state.selected=g.from;
+ state.legal=[g.to];
+ state.aiRecommendedMove={from:g.from,to:g.to};
+ renderBoard();
+ const styleNames={balanced:"GM Balanced",hikaru:"Hikaru-inspired",magnus:"Carlsen-inspired",gukesh:"Gukesh-inspired",caruana:"Caruana-inspired",judit:"Polgár-inspired",kasparov:"Kasparov-inspired",kramnik:"Kramnik-inspired",ding:"Ding-inspired"};
+ $("aiRecommendation").textContent=`Saran (${styleNames[gm]||"AI"}): ${g.from.toUpperCase()} → ${g.to.toUpperCase()}${g.promotion?"="+g.promotion.toUpperCase():""}. ${goal==="win"?"Dipilih melalui pencarian beberapa balasan untuk mencari posisi yang lebih kuat.":goal==="draw"?"Dipilih untuk mencari hasil seri atau posisi yang lebih seimbang.":"Dipilih sebagai langkah yang cenderung melemahkan posisi."} Gaya GM memakai bias strategi ringan; bukan reproduksi persis partai asli.`;
 }
 $("newGame").onclick=()=>{if(state.onlineRoom){toast("Untuk memulai ulang online, buat room/pertandingan baru.");return}startLocalGame(state.mode,state.opponent?.name||"Opponent",state.opponent?.difficulty||"easy")};$("resignBtn").onclick=()=>{if(!state.game||state.game.isGameOver())return;if(confirm("Resign this game?")){toast("Game resigned.");$("gameStatus").textContent="Game resigned.";state.game=null}};
 async function finishGame(){if(!state.game)return;const status=state.game.isCheckmate()?(state.game.turn()==="w"?"Black wins":"White wins"):"Draw";$("gameStatus").textContent=status;if(state.game._resultSaved||!state.user)return;state.game._resultSaved=true;let result="Draw";if(state.game.isCheckmate()){const winner=state.game.turn()==="w"?"b":"w";if(state.onlineRoom){const myColor=state.onlineColor==="white"?"w":"b";result=winner===myColor?"Win":"Loss"}else result=winner==="w"?"Win":"Loss"}const mode=state.mode||"classic";const opponent=state.opponent?.name||(state.onlineRoom?"Opponent":"Local player");try{await push(ref(db,`users/${state.user.uid}/history`),{mode,result,opponent,endedAt:Date.now(),moves:state.game.history().length,online:!!state.onlineRoom});}catch(e){console.warn("Could not save match history",e)}if(mode==="ranked"&&state.onlineRoom)toast("Pertandingan Ranked selesai. ELO belum diubah otomatis karena perubahan ELO kompetitif harus diverifikasi server.");}
