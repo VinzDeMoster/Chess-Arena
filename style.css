@@ -40,3 +40,18 @@
 /* AI Feature: show one distinct recommended destination, not every legal square. */
 .square.ai-recommended:after{content:"";position:absolute;width:32%;height:32%;border-radius:50%;background:#70e0be!important;border:3px solid #063b3b;box-shadow:0 0 0 5px #70e0be55,0 0 18px #70e0be;z-index:2}
 .square.ai-recommended.has-piece:after{width:88%;height:88%;border-radius:50%;background:transparent!important;border:5px solid #70e0be;box-shadow:0 0 0 5px #70e0be55,0 0 18px #70e0be}
+
+/* Exclusive AI mode switches: only AI Feature or AI GM can be active at once. */
+.ai-mode-switches{display:grid;gap:10px;margin:14px 0;padding:12px;border:1px solid rgba(150,190,210,.2);border-radius:12px;background:rgba(3,13,25,.35)}
+.ai-switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0}
+.ai-switch-row>div{display:flex;flex-direction:column;gap:4px}
+.ai-switch-row b{font-size:13px;color:#e5edf7}
+.ai-switch-row small{font-size:11px;line-height:1.4;color:var(--muted)}
+.switch{position:relative;display:inline-block!important;width:46px;height:26px;min-width:46px;margin:0!important}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .slider{position:absolute;cursor:pointer;inset:0;border-radius:999px;background:#344154;border:1px solid #526175;transition:.2s}
+.switch .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;border-radius:50%;background:#e8eef6;transition:.2s}
+.switch input:checked+.slider{background:#168b78;border-color:#53d9bc}
+.switch input:checked+.slider:before{transform:translateX(20px);background:#fff}
+.switch input:focus-visible+.slider{outline:2px solid #73e5cc;outline-offset:3px}
+#aiModeHint{margin:0;font-size:11px}
