@@ -55,3 +55,7 @@
 .switch input:checked+.slider:before{transform:translateX(20px);background:#fff}
 .switch input:focus-visible+.slider{outline:2px solid #73e5cc;outline-offset:3px}
 #aiModeHint{margin:0;font-size:11px}
+
+/* Explicit piece colors: white pieces stay light and black pieces stay dark regardless of square color. */
+.square.piece-white{color:#f7fbff;text-shadow:0 1px 2px #071426,0 0 2px #071426;-webkit-text-stroke:.35px #172b3c}
+.square.piece-black{color:#111820;text-shadow:0 1px 0 #e4edf3,0 0 1px #e4edf3;-webkit-text-stroke:.25px #dbe6ec}

@@ -3,7 +3,7 @@
 A responsive chess website starter with Firebase email/password accounts, a dark blue chess-themed landing page, four-language UI shell (English, Indonesian, Japanese, Korean), chess board rules powered by chess.js, AI difficulty selector, custom room-code UI, player chat tabs, admin panel, and live announcement popup.
 
 ## Important scope note
-This is a starter/MVP, not a production-ready Chess.com clone. The local board supports legal chess moves and check/checkmate/draw detection. Easy AI is random; Medium/Hard/Impossible currently use a simple capture/check-priority heuristic and are **not** strong chess engines. Ranked/Classic now include a client-side realtime queue, and Custom room moves sync between devices through Realtime Database. This is an MVP implementation: queue coordination and move validation are client-side and are not safe against cheating or race abuse. Ranked ELO awards are not yet server-verified. Global/Local/Friends are separate chat feeds, but Local and Friends are not yet filtered to real geography/friend lists. User search/moderation is a client-side admin UI and should be moved to a trusted backend before public launch.
+This is a starter/MVP, not a production-ready Chess.com clone. The local board supports legal chess moves and check/checkmate/draw detection. Easy AI is random; Medium/Hard/Impossible currently use a simple capture/check-priority heuristic and are **not** strong chess engines. Ranked/Classic now include a client-side realtime queue, and Custom room moves sync between devices through Realtime Database. This is an MVP implementation: queue coordination and move validation are client-side and are not safe against cheating or race abuse. Ranked ELO changes are currently calculated client-side from rating differences and are not server-verified; a trusted backend is required before public competitive use. Global/Local/Friends are separate chat feeds, but Local and Friends are not yet filtered to real geography/friend lists. User search/moderation is a client-side admin UI and should be moved to a trusted backend before public launch.
 
 ## 1. Create Firebase project
 1. Open https://console.firebase.google.com/ and create a project.
@@ -22,7 +22,7 @@ Because this uses JavaScript modules, open it through a local web server rather 
 
 ## Features currently included
 - Firebase Authentication: email/password sign-up and login.
-- Realtime Database player profile with initial ELO 20 and role/status fields.
+- Realtime Database player profile with initial ELO 0 and role/status fields.
 - Responsive dark chess-themed home/dashboard.
 - English, Indonesian, Japanese, Korean UI string switcher (some dynamically generated game/setup copy remains English).
 - Legal local chess moves, promotion to queen, check, checkmate and draw display.
@@ -85,3 +85,10 @@ Chat uses `chats/global`, `chats/local`, and `chats/friend` as separate channels
 - Win mode selects the best searched evaluation; draw mode favors drawn outcomes or evaluations closer to equality; lose mode deliberately selects the weakest searched move.
 - The GM labels are style-inspired biases only. They do not contain a verified opening/game database for each grandmaster and cannot promise a win. For stronger analysis, integrate Stockfish WASM in a Web Worker and/or a verified opening database.
 - This remains a browser-side heuristic engine, not a tournament-strength engine. Search depth is intentionally limited for mobile performance.
+
+
+## Latest patch notes
+- New accounts start at ELO 0 (existing account ratings are preserved).
+- Ranked online results apply rating-difference deltas inspired by the supplied table: equal ratings +7/-7/0; lower-rated players gain more for wins; higher-rated players lose more for losses. ELO is clamped to a minimum of 0.
+- Piece glyph colors are explicit: white pieces render light and black pieces render dark on both square colors.
+- AI search depth is increased by one ply. This is still a lightweight in-browser search, not a true 10-move/10-ply engine or a 99.9% win guarantee. For deep analysis, integrate a Stockfish WASM engine and consider a worker to avoid blocking mobile browsers.
