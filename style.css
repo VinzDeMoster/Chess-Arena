@@ -36,3 +36,7 @@
 .ai-feature-panel label{display:block;margin:14px 0}
 .ai-feature-panel label span{display:block;color:#bdcde0;font-size:12px;margin-bottom:8px}
 .ai-feature-panel .message{line-height:1.6;margin-bottom:0}
+
+/* AI Feature: show one distinct recommended destination, not every legal square. */
+.square.ai-recommended:after{content:"";position:absolute;width:32%;height:32%;border-radius:50%;background:#70e0be!important;border:3px solid #063b3b;box-shadow:0 0 0 5px #70e0be55,0 0 18px #70e0be;z-index:2}
+.square.ai-recommended.has-piece:after{width:88%;height:88%;border-radius:50%;background:transparent!important;border:5px solid #70e0be;box-shadow:0 0 0 5px #70e0be55,0 0 18px #70e0be}
