@@ -12,6 +12,7 @@ import { Chess } from "https://cdn.jsdelivr.net/npm/chess.js@1.0.0/+esm";
 const firebaseConfig = {
   apiKey: "AIzaSyCjd40Ffc3g9T2Q1psOyvzzTOZa4Du8zrA",
   authDomain: "chess-game-90be9.firebaseapp.com",
+  databaseURL: "https://chess-game-90be9-default-rtdb.asia-southeast1.firebasedatabase.app/",
   projectId: "chess-game-90be9",
   storageBucket: "chess-game-90be9.firebasestorage.app",
   messagingSenderId: "819468573963",
