@@ -27,7 +27,7 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - English, Indonesian, Japanese, Korean UI string switcher (some dynamically generated game/setup copy remains English).
 - Legal local chess moves, promotion to queen, check, checkmate and draw display.
 - AI mode selector (Easy / Medium / Hard / Impossible heuristic demo).
-- Custom online room-code create/join with live board synchronization across devices. Ranked and Classic queue for another connected player and open an online board when matched.
+- Custom offers two choices: local two-player on one device, or online room create/join with realtime board synchronization. Ranked and Classic queue for another connected player and open an online board when matched. Settings include account display-name updates, password changes (current password required), and match history.
 - Global/Local/Friends chat feeds using Realtime Database.
 - Admin UI gated by `users/<uid>/role === "admin"` for user profile status actions and live announcements.
 - Live announcement popup for signed-in clients.
@@ -47,6 +47,12 @@ Because this uses JavaScript modules, open it through a local web server rather 
 - Confirm the website's `firebaseConfig` points to the same Firebase project where the account was created.
 - The updated `app.js` displays a more specific error when Firebase Authentication or the profile database fails. Open browser developer tools if the issue persists.
 
+
+## Settings and Custom modes
+- Custom → **Main di satu perangkat** starts a local two-player board with no ELO shown or changed.
+- Custom → **Buat room online** creates a room code; the other player chooses Custom and joins with that code from their own device.
+- Settings lets users change their display name, change their password after re-authenticating with the current password, and view saved match history.
+- The updated `database.rules.json` supports history reads/writes for the signed-in owner and allows a guest to join a waiting room. Publish the entire rules file in Firebase Console for these changes to take effect.
 
 ## Online multiplayer setup (important)
 - Publish the updated `database.rules.json` in Firebase Realtime Database → Rules.
